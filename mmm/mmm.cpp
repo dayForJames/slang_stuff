@@ -61,6 +61,30 @@ void diagnoseIfNeeded(slang::IBlob* diagnosticsBlob)
 //    gfxCreateDevice(&deviceDesc, &device);
 //}
 
+void 
+print_J(float** J, int width, int height)
+{
+    std::cout << std::endl;
+
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            std::cout << J[i][j] << " ";
+        }
+
+        std::cout << std::endl;
+    }
+}
+
+void
+free_J(float** J, int width, int height)
+{
+    for (int i = 0; i < height; ++i) {
+        delete[] J[i];
+    }
+
+    delete[] J;
+}
+
 int
 main()
 {
@@ -84,27 +108,47 @@ main()
     gfx::ComPtr<ISlangSharedLibrary> sharedLibrary;
     SLANG_RETURN_ON_FAIL(request->getTargetHostCallable(0, sharedLibrary.writeRef()));
 
+
+    //  First example
     {
         float **J = new float*[3];
         for (int i = 0; i < 3; ++i) {
             J[i] = new float[2];
         }
-        typedef void (*Func)(float **);
-        Func func = (Func)sharedLibrary->findFuncByName("computeMain");
+
+        typedef void (*MainFunc)(float **);
+        MainFunc func = (MainFunc)sharedLibrary->findFuncByName("computeMain");
 
         if (!func) {
-            printf("Nooooo\n");
+            printf("Nooooo func available\n");
         }
 
         func(J);
-        
-        for (int i = 0; i < 3; ++i) {
-            for (int j = 0; j < 2; ++j) {
-                std::cout << J[i][j] << " ";
-            }
 
-            std::cout << std::endl;
+        print_J(J, 2, 3);
+        free_J(J, 2, 3);
+    }
+
+    //  Second example
+    {
+        float** J = new float* [3];
+        for (int i = 0; i < 3; ++i) {
+            J[i] = new float[3];
         }
+
+        typedef void (*F)(float*, float**);
+
+        F f = (F)sharedLibrary->findFuncByName("f");
+
+        if (!f) {
+            printf("Nooooo func available\n");
+        }
+
+        float x[3] = { 10, 4, 1 };
+        f(x, J);
+
+        print_J(J, 3, 3);
+        free_J(J, 3, 3);
     }
 
     /*spDestroyCompileRequest(request);
